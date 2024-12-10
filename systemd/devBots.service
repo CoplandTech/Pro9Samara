@@ -1,0 +1,15 @@
+[Unit]
+Description=devBots
+After=syslog.target
+After=network.target
+    
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/bots/devBots
+ExecStart=/bots/devBots/devBots/bin/python3.11 /bots/devBots/bot/main.py
+RestartSec=10
+Restart=always
+    
+[Install]
+WantedBy=multi-user.target
