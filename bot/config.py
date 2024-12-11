@@ -6,6 +6,12 @@ ADMINS = ['ADM1', 'ADM2']
 
 DELAY_BIRTH_DAY_MESSAGES = 0 # Интервал отправки уведомления о указании ДР
 
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+
+QR_DIR = os.path.join(BASE_DIR, 'data', 'QR')
+QR_TEMPLATE = os.path.join(QR_DIR, 'Template')
+
+
 PHRASES = {
     "registered": "Привет, мы Вас помним, вот Ваш купон!",
     "request_user_phone": "Пожалуйста, отправьте ваш номер телефона, используя кнопку.",

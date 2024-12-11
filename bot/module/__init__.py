@@ -1,1 +1,1 @@
-from . import Start, AdminPanel
+from . import Start, AdminPanel, QR

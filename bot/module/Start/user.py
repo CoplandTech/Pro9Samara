@@ -11,6 +11,7 @@ from module.TinyDB.config import db_users
 
 from module.TinyDB.function import create_user, update_user, is_registration_complete
 from module.utils import validate_date_format
+from module.QR.user import send_coupon_from_db, generate_coupon_for_user
 
 @dp.message_handler(commands=['start'])
 async def start_command_handler(message: types.Message):
@@ -23,6 +24,7 @@ async def start_command_handler(message: types.Message):
     if is_registration_complete(user_id):
         update_user(user_id, last_active=datetime.now().isoformat())
         await message.answer(PHRASES["registered"], reply_markup=keyboard_start)
+        await send_coupon_from_db(user_id, message.chat.id) # Отправляем купон из базы    
     else:
         await message.answer(PHRASES["request_user_phone"], reply_markup=request_phone_keyboard)
         await dp.storage.set_state(chat=message.chat.id, user=message.from_user.id, state="awaiting_phone")
@@ -37,6 +39,8 @@ async def contact_handler(message: types.Message):
 
     phone_number = message.contact.phone_number
     update_user(user_id, phone_number=phone_number)
+
+    await generate_coupon_for_user(user_id) # Генерация купона и сохранение в базу
 
     await message.answer(PHRASES["user_sender_phone"], reply_markup=get_skip_keyboard())
     await dp.storage.set_state(chat=message.chat.id, user=user_id, state="awaiting_birth_date")
@@ -54,12 +58,14 @@ async def birth_date_handler(message: types.Message):
 
     if birth_date == (PHRASES["btn_skip"]):
         await message.answer(PHRASES["skip_send_birth"], reply_markup=keyboard_start)
+        await send_coupon_from_db(user_id, message.chat.id)  # Отправляем купон
         await dp.storage.reset_state(chat=message.chat.id, user=user_id)
         return
 
     if validate_date_format(birth_date):
         update_user(user_id, birth_date=birth_date)
         await message.answer(PHRASES["user_sender_phone_birth"], reply_markup=keyboard_start)
+        await send_coupon_from_db(user_id, message.chat.id)  # Отправляем купон
         await dp.storage.reset_state(chat=message.chat.id, user=user_id)
     else:
         await message.answer(PHRASES["error_user_birth"], reply_markup=get_skip_keyboard())

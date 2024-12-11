@@ -1,5 +1,8 @@
 aiogram==2.25.2
 tinydb
-aiotinydb
 aiohttp
 beautifulsoup4
+Pillow
+qrcode
+pyzbar
+pathlib
