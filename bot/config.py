@@ -1,8 +1,8 @@
 import os
 
-API_TOKEN = '7445707976:AAGkWPwkJVYoCvcXjUefDLegtI-71qjjxIU'
+API_TOKEN = 'TOKEN'
 
-ADMINS = ['5421423125', '922464224']
+ADMINS = ['ADM1', 'ADM2']
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 TEMP_DIR = os.path.join(BASE_DIR, 'data', 'Temp')
