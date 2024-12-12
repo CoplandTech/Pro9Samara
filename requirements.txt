@@ -1,6 +1,7 @@
 aiogram==2.25.2
 tinydb
 aiohttp
+openpyxl
 beautifulsoup4
 Pillow
 qrcode

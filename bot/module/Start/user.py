@@ -4,14 +4,14 @@ from aiogram.types import ContentType
 from datetime import datetime, timedelta
 import asyncio
 
-from loader import dp
-from config import PHRASES, DELAY_BIRTH_DAY_MESSAGES
+from loader import dp, bot
+from config import PHRASES, DELAY_BIRTH_DAY_MESSAGES, DELAY_NOTIFICATION_ACTIVE_MESSAGES
 from module.keyboards import keyboard_start, request_phone_keyboard, get_skip_keyboard
 from module.TinyDB.config import db_users
 
 from module.TinyDB.function import create_user, update_user, is_registration_complete
 from module.utils import validate_date_format
-from module.QR.user import send_coupon_from_db, generate_coupon_for_user
+from module.QR.user import send_coupon, save_coupon_code
 
 @dp.message_handler(commands=['start'])
 async def start_command_handler(message: types.Message):
@@ -24,7 +24,7 @@ async def start_command_handler(message: types.Message):
     if is_registration_complete(user_id):
         update_user(user_id, last_active=datetime.now().isoformat())
         await message.answer(PHRASES["registered"], reply_markup=keyboard_start)
-        await send_coupon_from_db(user_id, message.chat.id) # Отправляем купон из базы    
+        await send_coupon(user_id, message.chat.id, bot)  
     else:
         await message.answer(PHRASES["request_user_phone"], reply_markup=request_phone_keyboard)
         await dp.storage.set_state(chat=message.chat.id, user=message.from_user.id, state="awaiting_phone")
@@ -40,7 +40,7 @@ async def contact_handler(message: types.Message):
     phone_number = message.contact.phone_number
     update_user(user_id, phone_number=phone_number)
 
-    await generate_coupon_for_user(user_id) # Генерация купона и сохранение в базу
+    selected_code = save_coupon_code(user_id, phone_number)
 
     await message.answer(PHRASES["user_sender_phone"], reply_markup=get_skip_keyboard())
     await dp.storage.set_state(chat=message.chat.id, user=user_id, state="awaiting_birth_date")
@@ -58,21 +58,22 @@ async def birth_date_handler(message: types.Message):
 
     if birth_date == (PHRASES["btn_skip"]):
         await message.answer(PHRASES["skip_send_birth"], reply_markup=keyboard_start)
-        await send_coupon_from_db(user_id, message.chat.id)  # Отправляем купон
+        await send_coupon(user_id, message.chat.id, bot)
         await dp.storage.reset_state(chat=message.chat.id, user=user_id)
         return
 
     if validate_date_format(birth_date):
         update_user(user_id, birth_date=birth_date)
         await message.answer(PHRASES["user_sender_phone_birth"], reply_markup=keyboard_start)
-        await send_coupon_from_db(user_id, message.chat.id)  # Отправляем купон
+        await send_coupon(user_id, message.chat.id, bot)
         await dp.storage.reset_state(chat=message.chat.id, user=user_id)
     else:
         await message.answer(PHRASES["error_user_birth"], reply_markup=get_skip_keyboard())
     
-@dp.message_handler(Text(equals="Кнопка 1"))
-async def button_1_handler(message: types.Message):
-    await message.answer("Ахахахах")
+@dp.message_handler(Text(equals=PHRASES["btn_get_coupon"]))
+async def get_coupon_user(message: types.Message):
+    user_id = message.from_user.id
+    await send_coupon(user_id, message.chat.id, bot) 
 
 async def remind_birth_date():
     if DELAY_BIRTH_DAY_MESSAGES == 0:
@@ -83,7 +84,7 @@ async def remind_birth_date():
         for user in db_users.all():
             user_id = user['id']
             last_active = datetime.fromisoformat(user.get('last_active'))
-            if not user.get('birth_date') and (now - last_active > timedelta(minutes=2)):
+            if not user.get('birth_date') and (now - last_active > timedelta(seconds=DELAY_NOTIFICATION_ACTIVE_MESSAGES)):
                 try:
                     await dp.bot.send_message(user_id, PHRASES["notification_send_birth"], reply_markup=get_skip_keyboard())
                     await dp.storage.set_state(chat=user_id, user=user_id, state="awaiting_birth_date")
